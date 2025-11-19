@@ -278,6 +278,42 @@ app.get("/users/:id", requireAuth, (req, res) => {
   });
 });
 
+/// ------------------------
+// API KEYS ROUTE (sns_key)
+// ------------------------
+app.get(
+  "/admin/list/custom/sns_key/_/_/id/DESC/:offset/:limit",
+  requireAuth,
+  (req, res) => {
+    const offset = parseInt(req.params.offset) || 0;
+    const limit = parseInt(req.params.limit) || 50;
+
+    // Count total keys for pagination
+    db.query("SELECT COUNT(*) AS total FROM sns_key", (err, countResults) => {
+      if (err) return res.status(500).json({ error: "Count query failed", details: err });
+
+      const total = countResults[0]?.total || 0;
+
+      // Fetch paginated keys, sorted by id DESC
+      db.query(
+        `SELECT id, sns_id, api_key, api_secret, access_token, action, status, status_message, createdat, updatedat 
+         FROM sns_key 
+         ORDER BY id DESC 
+         LIMIT ? OFFSET ?`,
+        [limit, offset],
+        (err, results) => {
+          if (err) return res.status(500).json({ error: "Query failed", details: err });
+
+          res.json({
+            list: results,
+            total,
+          });
+        }
+      );
+    });
+  }
+);
+
 // ------------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
