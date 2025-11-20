@@ -77,7 +77,8 @@ function requireAuth(req, res, next) {
 }
 
 // ------------------------
-// ADMIN LOGIN ROUTE (plain password)
+// ADMIN LOGIN ROUTE 
+// ------------------------
 app.post("/api/admin/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -89,23 +90,35 @@ app.post("/api/admin/login", (req, res) => {
     "SELECT * FROM `user` WHERE username = ? LIMIT 1",
     [username],
     (err, results) => {
-      if (err) return res.status(500).json({ message: "DB query failed", details: err });
+      if (err) {
+        return res.status(500).json({ message: "DB query failed", details: err });
+      }
 
-      if (results.length === 0) return res.status(404).json({ message: "User not found" });
+      if (results.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
       const user = results[0];
 
-      if (Number(user.level) !== 2) {
-        return res.status(403).json({ message: "Forbidden: not an admin" });
+      // DYNAMIC USERNAME CHECK
+      if (username !== user.username) {
+        return res.status(401).json({ message: "Invalid username" });
       }
 
-      // ------------------------
-      // Plain password check
-      if (password !== user.password) {
+      // DYNAMIC PASSWORD CHECK
+      if (password !== user.pw) {
         return res.status(401).json({ message: "Invalid password" });
       }
 
+      // SUPERADMIN CHECK
+      const isSuperAdmin = Number(user.level) === 90; 
+      if (!isSuperAdmin) {
+        return res.status(403).json({ message: "Forbidden: superadmin only" });
+      }
+
+      // ------------------------
       // Generate JWT token
+      // ------------------------
       const token = jwt.sign(
         { id: user.id, username: user.username, level: user.level },
         JWT_SECRET,
@@ -118,8 +131,8 @@ app.post("/api/admin/login", (req, res) => {
           id: user.id,
           username: user.username,
           email: user.email,
-          level: user.level
-        }
+          level: user.level,
+        },
       });
     }
   );
@@ -159,22 +172,31 @@ app.post("/api/logout", (req, res) => {
 app.get("/events", requireAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = parseInt(req.query.offset) || 0;
+  const search = req.query.search || ""; // search by title
+  const sortBy = req.query.sortBy === "date" ? "event_date" : "id"; // default sort by id
+  const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC"; // default asc
 
-  db.query(
-    `SELECT * FROM event ORDER BY event_date ASC, id ASC LIMIT ? OFFSET ?`,
-    [limit, offset],
-    (err, results) => {
-      if (err) return res.status(500).json({ error: "Database query failed", details: err });
-      res.json(results);
-    }
-  );
+  const sql = `
+    SELECT * FROM event
+    WHERE title LIKE ?
+    ORDER BY ${sortBy} ${sortOrder}, id ASC
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(sql, [`%${search}%`, limit, offset], (err, results) => {
+    if (err)
+      return res.status(500).json({ error: "Database query failed", details: err });
+    res.json(results);
+  });
 });
 
 app.get("/events/:id", requireAuth, (req, res) => {
   const { id } = req.params;
   db.query("SELECT * FROM event WHERE id = ? LIMIT 1", [id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Database query failed", details: err });
-    if (results.length === 0) return res.status(404).json({ error: "Event not found" });
+    if (err)
+      return res.status(500).json({ error: "Database query failed", details: err });
+    if (results.length === 0)
+      return res.status(404).json({ error: "Event not found" });
     res.json(results[0]);
   });
 });
@@ -201,7 +223,8 @@ app.post("/events", requireAuth, (req, res) => {
   ];
 
   db.query(query, params, (err, results) => {
-    if (err) return res.status(500).json({ error: "Failed to create event", details: err });
+    if (err)
+      return res.status(500).json({ error: "Failed to create event", details: err });
     res.json({ message: "Event created successfully!", id: results.insertId });
   });
 });
@@ -230,19 +253,36 @@ app.put("/events/:id", requireAuth, (req, res) => {
   ];
 
   db.query(query, params, (err, results) => {
-    if (err) return res.status(500).json({ error: "Update failed", details: err });
-    if (results.affectedRows === 0) return res.status(404).json({ error: "Event not found or no changes made" });
+    if (err)
+      return res.status(500).json({ error: "Update failed", details: err });
+    if (results.affectedRows === 0)
+      return res.status(404).json({ error: "Event not found or no changes made" });
     res.json({ message: "Event updated successfully!" });
   });
 });
+
 
 // ------------------------
 // ITEMS ROUTES
 app.get("/items", requireAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const offset = parseInt(req.query.offset) || 0;
+  const search = req.query.search || "";
+  let sortBy = req.query.sortBy || "id";
+  const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
 
-  db.query(`SELECT * FROM item ORDER BY id ASC LIMIT ? OFFSET ?`, [limit, offset], (err, results) => {
+  // Validate sortBy to prevent SQL injection
+  const allowedSort = ["id", "name", "status"];
+  if (!allowedSort.includes(sortBy)) sortBy = "id";
+
+  const sql = `
+    SELECT * FROM item
+    WHERE name LIKE ?
+    ORDER BY ${sortBy} ${sortOrder}, id ASC
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(sql, [`%${search}%`, limit, offset], (err, results) => {
     if (err) return res.status(500).json({ error: "Database query failed", details: err });
     res.json(results);
   });
@@ -257,13 +297,77 @@ app.get("/items/:id", requireAuth, (req, res) => {
   });
 });
 
+// -----------------------------------------------------
+// UPDATE ITEM STATUS (Ban / Unban / Deactivate / Activate)
+// -----------------------------------------------------
+
+app.put("/items/:id/status", requireAuth, (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (status === undefined) {
+    return res.status(400).json({ error: "Missing status value" });
+  }
+
+  // Auto-generate status_message based on status
+  let statusMessage;
+  if (status == 1) statusMessage = "Approved";
+  else if (status == 2) statusMessage = "Banned / Archived / Hidden";
+  else if (status == 0) statusMessage = "Deactivated / Hidden";
+  else statusMessage = "Unknown";
+
+  const sql = `
+    UPDATE item
+    SET status = ?, status_message = ?, updatedat = NOW()
+    WHERE id = ?
+  `;
+
+  db.query(sql, [status, statusMessage, id], (err, result) => {
+    if (err) {
+      console.error("Item status update failed:", err);
+      return res.status(500).json({ error: "Database update failed", details: err });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    return res.json({
+      success: true,
+      message: "Item status updated successfully",
+      itemId: id,
+      newStatus: status,
+      newStatusMessage: statusMessage,
+    });
+  });
+});
+
 // ------------------------
 // USERS ROUTES
+// ------------------------
 app.get("/users", requireAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const offset = parseInt(req.query.offset) || 0;
+  const search = req.query.search ? `%${req.query.search}%` : null;
+  const sortBy = req.query.sortBy || "id"; // id, username, status
+  const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
 
-  db.query(`SELECT * FROM user ORDER BY id ASC LIMIT ? OFFSET ?`, [limit, offset], (err, results) => {
+  // Validate sortBy field
+  const validSortFields = ["id", "username", "status"];
+  const orderField = validSortFields.includes(sortBy) ? sortBy : "id";
+
+  let sql = "SELECT * FROM user";
+  let params = [];
+
+  if (search) {
+    sql += " WHERE username LIKE ?";
+    params.push(search);
+  }
+
+  sql += ` ORDER BY ${orderField} ${sortOrder} LIMIT ? OFFSET ?`;
+  params.push(limit, offset);
+
+  db.query(sql, params, (err, results) => {
     if (err) return res.status(500).json({ error: "Database query failed", details: err });
     res.json(results);
   });
@@ -278,38 +382,99 @@ app.get("/users/:id", requireAuth, (req, res) => {
   });
 });
 
-/// ------------------------
-// API KEYS ROUTE (sns_key)
+// -----------------------------------------------------
+// UPDATE USER STATUS (Ban / Unban / Deactivate / Activate)
+// -----------------------------------------------------
+app.put("/users/:id/status", requireAuth, (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (status === undefined) {
+    return res.status(400).json({ error: "Missing status value" });
+  }
+
+  let statusMessage = null;
+  if (status == 1) statusMessage = "Active";
+  else if (status == 2) statusMessage = "Suspended / Banned";
+  else if (status == 0) statusMessage = "Deactivated";
+  else statusMessage = "Unknown";
+
+  const sql = `
+    UPDATE user 
+    SET status = ?, status_message = ?, updatedat = NOW() 
+    WHERE id = ?
+  `;
+
+  db.query(sql, [status, statusMessage, id], (err, result) => {
+    if (err) {
+      console.error("User status update failed:", err);
+      return res.status(500).json({ error: "Database update failed", details: err });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "User status updated successfully",
+      userId: id,
+      newStatus: status,
+      newStatusMessage: statusMessage,
+    });
+  });
+});
+
+
+// ------------------------
+// API KEYS ROUTE (sns_key) WITH SEARCH & SORT
 // ------------------------
 app.get(
-  "/admin/list/custom/sns_key/_/_/id/DESC/:offset/:limit",
+  "/admin/list/custom/sns_key/:search/:sortBy/:sortOrder/:offset/:limit",
   requireAuth,
   (req, res) => {
+    const { search, sortBy, sortOrder } = req.params;
     const offset = parseInt(req.params.offset) || 0;
     const limit = parseInt(req.params.limit) || 50;
 
-    // Count total keys for pagination
-    db.query("SELECT COUNT(*) AS total FROM sns_key", (err, countResults) => {
+    const searchTerm = search === "_" ? "" : `%${search}%`; // "_" means no search
+    const orderField = ["id", "sns_id", "status", "createdat"].includes(sortBy) ? sortBy : "id";
+    const orderDir = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    // Count total keys (filtered)
+    const countQuery = searchTerm
+      ? `SELECT COUNT(*) AS total FROM sns_key WHERE sns_id LIKE ? OR api_key LIKE ?`
+      : `SELECT COUNT(*) AS total FROM sns_key`;
+
+    const countParams = searchTerm ? [searchTerm, searchTerm] : [];
+
+    db.query(countQuery, countParams, (err, countResults) => {
       if (err) return res.status(500).json({ error: "Count query failed", details: err });
 
       const total = countResults[0]?.total || 0;
 
-      // Fetch paginated keys, sorted by id DESC
-      db.query(
-        `SELECT id, sns_id, api_key, api_secret, access_token, action, status, status_message, createdat, updatedat 
-         FROM sns_key 
-         ORDER BY id DESC 
-         LIMIT ? OFFSET ?`,
-        [limit, offset],
-        (err, results) => {
-          if (err) return res.status(500).json({ error: "Query failed", details: err });
+      // Fetch paginated keys with optional search
+      const selectQuery = searchTerm
+        ? `SELECT id, sns_id, api_key, api_secret, access_token, action, status, status_message, createdat, updatedat
+           FROM sns_key
+           WHERE sns_id LIKE ? OR api_key LIKE ?
+           ORDER BY ${orderField} ${orderDir}
+           LIMIT ? OFFSET ?`
+        : `SELECT id, sns_id, api_key, api_secret, access_token, action, status, status_message, createdat, updatedat
+           FROM sns_key
+           ORDER BY ${orderField} ${orderDir}
+           LIMIT ? OFFSET ?`;
 
-          res.json({
-            list: results,
-            total,
-          });
-        }
-      );
+      const selectParams = searchTerm ? [searchTerm, searchTerm, limit, offset] : [limit, offset];
+
+      db.query(selectQuery, selectParams, (err, results) => {
+        if (err) return res.status(500).json({ error: "Query failed", details: err });
+
+        res.json({
+          list: results,
+          total,
+        });
+      });
     });
   }
 );

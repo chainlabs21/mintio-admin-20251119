@@ -9,73 +9,39 @@ export default function EventsList() {
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState(null); // "id" or "date"
+  const [sortBy, setSortBy] = useState("id"); // "id" or "date"
   const [sortOrder, setSortOrder] = useState("asc"); // asc / desc
-  const limit = 6;
+  const limit = 5;
 
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
+      const token = getToken();
+      const res = await fetch(
+        `http://localhost:5000/events?limit=${limit}&offset=${offset}&search=${encodeURIComponent(
+          search
+        )}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+      setEvents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch events:", err);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refetch events when offset, search, sortBy, or sortOrder changes
   useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-      try {
-        const token = getToken(); // <-- get token
-
-        const res = await fetch(
-          `http://localhost:5000/events?limit=${limit}&offset=${offset}`,
-          {
-            headers: {
-              "Authorization": `Bearer ${token}`, // <-- send token
-            },
-          }
-        );
-
-        const data = await res.json();
-        setEvents(data);
-
-      } catch (err) {
-        console.error("Failed to fetch events:", err);
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchEvents();
-  }, [offset]);
-
-  // Filter
-  let filtered = events.filter((e) =>
-    e.title?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Sorting
-  if (sortBy === "id") {
-    filtered.sort((a, b) => (sortOrder === "asc" ? a.id - b.id : b.id - a.id));
-  } else if (sortBy === "date") {
-    filtered.sort((a, b) => {
-      const da = new Date(a.event_date);
-      const db = new Date(b.event_date);
-      return sortOrder === "asc" ? da - db : db - da;
-    });
-  }
-
-  const paginated = filtered.slice(0, limit);
-
-  const enriched = paginated.map((e) => ({
-    id: e.id,
-    name: e.title ?? "Untitled",
-    description: e.description ?? "",
-    kind: e.kind ?? "-",
-    event_date: e.event_date ?? "-",
-    status: e.status_message ?? "unknown",
-    join_start: e.join_start ?? "-",
-    join_end: e.join_end ?? "-",
-    exposure_pre_start: e.exposure_pre_start ?? "-",
-    exposure_pre_end: e.exposure_pre_end ?? "-",
-    exposure_main_start: e.exposure_main_start ?? "-",
-    exposure_main_end: e.exposure_main_end ?? "-",
-    created: e.createdat ?? "-",
-    updated: e.updatedat ?? "-",
-  }));
+  }, [offset, search, sortBy, sortOrder]);
 
   const toggleSort = (field) => {
     if (sortBy === field) {
@@ -84,6 +50,7 @@ export default function EventsList() {
       setSortBy(field);
       setSortOrder("asc");
     }
+    setOffset(0); // reset to first page when sort changes
   };
 
   return (
@@ -99,13 +66,16 @@ export default function EventsList() {
         </Link>
       </div>
 
-      {/* Search + Filters */}
+      {/* Search + Sort */}
       <div className="mb-4 flex gap-2 items-center">
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setOffset(0); // reset to first page when searching
+            }}
             placeholder="Search events…"
             className="pl-10 p-2 border border-gray-300 rounded w-72 bg-gray-200 focus:ring-1 focus:ring-cyan-400 focus:border-cyan-400 transition"
           />
@@ -157,21 +127,21 @@ export default function EventsList() {
               </tr>
             </thead>
             <tbody>
-              {enriched.map((e, i) => (
-                <tr key={i} className="hover:bg-gray-100 transition">
+              {events.map((e) => (
+                <tr key={e.id} className="hover:bg-gray-100 transition">
                   <td className="p-4 border-b border-gray-300">{e.id}</td>
-                  <td className="p-4 border-b border-gray-300">{e.name}</td>
-                  <td className="p-4 border-b border-gray-300">{e.kind}</td>
-                  <td className="p-4 border-b border-gray-300">{e.event_date}</td>
-                  <td className="p-4 border-b border-gray-300">{e.status}</td>
-                  <td className="p-4 border-b border-gray-300">{e.join_start}</td>
-                  <td className="p-4 border-b border-gray-300">{e.join_end}</td>
-                  <td className="p-4 border-b border-gray-300">{e.exposure_pre_start}</td>
-                  <td className="p-4 border-b border-gray-300">{e.exposure_pre_end}</td>
-                  <td className="p-4 border-b border-gray-300">{e.exposure_main_start}</td>
-                  <td className="p-4 border-b border-gray-300">{e.exposure_main_end}</td>
-                  <td className="p-4 border-b border-gray-300">{e.created}</td>
-                  <td className="p-4 border-b border-gray-300">{e.updated}</td>
+                  <td className="p-4 border-b border-gray-300">{e.title ?? "Untitled"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.kind ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.event_date ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.status_message ?? "unknown"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.join_start ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.join_end ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.exposure_pre_start ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.exposure_pre_end ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.exposure_main_start ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.exposure_main_end ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.createdat ?? "-"}</td>
+                  <td className="p-4 border-b border-gray-300">{e.updatedat ?? "-"}</td>
                   <td className="p-4 border-b border-gray-300">
                     <Link
                       to={`/events/${e.id}`}

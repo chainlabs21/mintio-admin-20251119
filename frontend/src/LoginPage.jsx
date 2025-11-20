@@ -58,7 +58,7 @@ export default function LoginPage() {
         <input
           name="adminId"
           className="w-full bg-gray-200 p-2 rounded border border-gray-900/30"
-          placeholder="Admin ID"
+          placeholder="Username"
         />
         <input
           name="password"
