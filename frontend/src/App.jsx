@@ -12,7 +12,7 @@ import { EventForm } from "./EventForm";
 import ItemsList from "./Itemlist";
 import ItemModerate from "./Itemmoderate";
 import UsersList from "./Userlist";
-import UserDetail from "./Userdetail";
+import UserDetail from "./UserDetail";
 import ApiKeysPage from "./Apikeypages";
 import ProtectedLayout from "./Protectedlayout";
 import ProtectedLogin from "./Protectlogin";
