@@ -1,18 +1,19 @@
 // ItemsList.jsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Search , ArrowUp , ArrowDown } from "lucide-react";
 import Table from "./Table";
 import { getToken } from "./utils";
+import { limit } from "./config";
 
 export default function ItemsList() {
   const [items, setItems] = useState([]);
+  const [total, setTotal] = useState(0); // ✅ NEW: backend total count
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("id"); // "id", "name", or "status"
+  const [sortBy, setSortBy] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
-  const limit = 10;
 
   const fetchItems = async () => {
     setLoading(true);
@@ -30,10 +31,13 @@ export default function ItemsList() {
       );
 
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+
+      setItems(Array.isArray(data.items) ? data.items : []);
+      setTotal(data.total || 0); // ✅ NEW
     } catch (err) {
       console.error("Failed to fetch items:", err);
       setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -50,17 +54,23 @@ export default function ItemsList() {
       setSortBy(field);
       setSortOrder("asc");
     }
-    setOffset(0); // reset pagination on sort change
+    setOffset(0);
   };
+
+  const currentPage = Math.floor(offset / limit) + 1;
+  const totalPages = Math.ceil(total / limit);
+
+  const rangeStart = total === 0 ? 0 : offset + 1;
+  const rangeEnd = Math.min(offset + limit, total);
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Items</h2>
+      <h2 className="text-2xl font-bold mb-4">Items</h2>
 
+  
       {/* Search + Sort */}
       <div className="flex gap-2 mb-4 items-center">
-        <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="relative w-72">
           <input
             type="text"
             placeholder="Search items…"
@@ -69,20 +79,33 @@ export default function ItemsList() {
               setSearchTerm(e.target.value);
               setOffset(0);
             }}
-            className="pl-10 p-2 border border-gray-300 rounded w-72 bg-gray-200 focus:ring-1 focus:ring-cyan-400 focus:border-cyan-400 transition"
+            className="w-full pr-10 pl-3 py-2 border border-cyan-300 rounded bg-gray-200 focus:ring-1 focus:ring-cyan-400 focus:border-cyan-400 transition"
           />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+            <Search size={29} className="border border-cyan-400 rounded-full p-1" />
+          </div>
         </div>
 
         {["id", "name", "status"].map((field) => (
           <button
-            key={field}
-            onClick={() => toggleSort(field)}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded transition"
-          >
-            Sort by {field.charAt(0).toUpperCase() + field.slice(1)}{" "}
-            {sortBy === field ? (sortOrder === "asc" ? "↑" : "↓") : ""}
-          </button>
+    key={field}
+    onClick={() => toggleSort(field)}
+    className="px-3 py-1 bg-cyan-300 hover:bg-cyan-200 rounded transition flex items-center gap-2"
+  >
+    Sort by {field.charAt(0).toUpperCase() + field.slice(1)}
+
+    {/* ICONS */}
+    {sortBy === field && (
+      sortOrder === "asc" ? (
+        <ArrowUp size={16} />
+      ) : (
+        <ArrowDown size={16} />
+      )
+    )}
+  </button>
         ))}
+
+        
       </div>
 
       {loading ? (
@@ -111,34 +134,49 @@ export default function ItemsList() {
                   href={i.url_thumbnail}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-700"
+                  className="text-blue-600 font-semibold underline flex "
                 >
-                  View
+                  View 
                 </a>
               ) : "-",
-              <Link className="text-cyan-400 hover:underline" to={`/items/${i.id}`}>
-                Open
+              <Link className="text-cyan-400 font-semibold underline flex " to={`/items/${i.id}`}>
+                Open 
               </Link>,
             ])}
           />
 
           {/* Pagination */}
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={() => setOffset(Math.max(0, offset - limit))}
-              disabled={offset === 0}
-              className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200"
-            >
-              <ArrowLeft size={16} /> Prev
-            </button>
+          <div className="flex items-center justify-between mt-4">
 
-            <button
-              onClick={() => setOffset(offset + limit)}
-              disabled={items.length < limit}
-              className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200"
-            >
-              Next <ArrowRight size={16} />
-            </button>
+            {/* Left: Showing X–Y of Total */}
+            <div className="text-gray-700 font-small">
+              Showing <b>{rangeStart}</b>– <b>{rangeEnd} </b>of <b>{total}</b>
+            </div>
+
+            <div className="flex gap-2">
+
+              <button
+                onClick={() => setOffset(Math.max(0, offset - limit))}
+                disabled={offset === 0}
+                className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200"
+              >
+                <ArrowLeft size={16} /> Prev
+              </button>
+
+              <button
+                onClick={() => setOffset(offset + limit)}
+                disabled={offset + limit >= total}
+                className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200"
+              >
+                Next <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {/* Right: Page X of Y */}
+            <div className="text-gray-700 font-small">
+              Page <b>{currentPage}</b> of <b>{totalPages}</b>
+            </div>
+
           </div>
         </>
       )}

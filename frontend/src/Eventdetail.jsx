@@ -16,7 +16,7 @@ export default function EventDetail() {
     const fetchEvent = async () => {
       setLoading(true);
       try {
-        const token = getToken(); 
+        const token = getToken();
 
         const res = await fetch(`http://localhost:5000/events/${id}`, {
           headers: {
@@ -61,9 +61,11 @@ export default function EventDetail() {
 
   return (
     <div className="space-y-6">
+
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-cyan-400 flex items-center gap-2">{e.name}</h2>
+        <h2 className="text-2xl font-bold text-black mb-2">Event Detail</h2>
+
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/events")}
@@ -83,6 +85,9 @@ export default function EventDetail() {
 
       {/* Details */}
       <div className="bg-white p-5 rounded-xl shadow border border-gray-200 space-y-3">
+
+        <div><b>Event Title:</b> {e.name}</div>   {/* <-- Added here */}
+
         <div><b>Kind:</b> {e.kind}</div>
         <div><b>Status:</b> {e.status}</div>
         <div><b>Event Date:</b> {e.event_date}</div>

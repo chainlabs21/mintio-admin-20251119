@@ -17,7 +17,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen flex bg-white/40 text-gray-900">
       <aside className="w-64 bg-white p-6 flex flex-col border-r border-gray-200 shadow-lg shadow-cyan-600/30">
 
-        <h2 className="text-2xl font-bold text-cyan-600 mb-10 text-center whitespace-nowrap">
+        <h2 className="text-2xl font-bold text-cyan-400 mb-10 text-center whitespace-nowrap">
           Mintio Admin
         </h2>
 
@@ -29,18 +29,17 @@ export default function Layout({ children }) {
             <NavItem to="/users" label="Users" icon={<User size={18} />} />
             <NavItem to="/apikeys" label="API Keys" icon={<Key size={18} />} />
           </div>
-
           <LogoutItem />
         </nav>
       </aside>
 
-      <main className="flex-1 p-6">
-        <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
+      <main className="flex-1 p-6 ">
         {children}
       </main>
     </div>
   );
 }
+
 
 function NavItem({ to, label, icon }) {
   return (

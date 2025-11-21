@@ -113,7 +113,7 @@ app.post("/api/admin/login", (req, res) => {
       }
 
       // SUPERADMIN CHECK
-      const isSuperAdmin = Number(user.level) === 90; 
+      const isSuperAdmin = Number(user.level) === 90;
       if (!isSuperAdmin) {
         return res.status(403).json({ message: "Forbidden: superadmin only" });
       }
@@ -159,38 +159,89 @@ app.post("/api/verify-token", (req, res) => {
 });
 
 // ------------------------
-// Logout
-app.post("/api/logout", (req, res) => {
+// Admin Logout
+app.post("/api/admin/logout", (req, res) => {
   const authHeader = req.headers.authorization || "";
-  if (!authHeader.startsWith("Bearer ")) return res.json({ ok: true });
+
+  // If no Bearer token, still return ok:true (safe logout)
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.json({ ok: true });
+  }
 
   const token = authHeader.split(" ")[1];
+
+  // Add token to blacklist
   blacklistToken(token);
+
   return res.json({ ok: true });
 });
 
 // ------------------------
 // EVENTS ROUTES
+// ------------------------
 app.get("/events", requireAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = parseInt(req.query.offset) || 0;
-  const search = req.query.search || ""; // search by title
-  const sortBy = req.query.sortBy === "date" ? "event_date" : "id"; // default sort by id
-  const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC"; // default asc
+  const search = req.query.search || "";
 
-  const sql = `
-    SELECT * FROM event
+  // Sorting
+  let sortBy = req.query.sortBy || "id";
+  const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
+
+  // Allowed sorting columns (SQL injection safety)
+  const allowedSort = {
+    id: "id",
+    date: "event_date",
+    title: "title",
+    status: "status_message"
+  };
+
+  // Final validated sort column
+  const sortColumn = allowedSort[sortBy] || "id";
+
+  // 1️⃣ Total count query
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM event
     WHERE title LIKE ?
-    ORDER BY ${sortBy} ${sortOrder}, id ASC
-    LIMIT ? OFFSET ?
   `;
 
-  db.query(sql, [`%${search}%`, limit, offset], (err, results) => {
-    if (err)
-      return res.status(500).json({ error: "Database query failed", details: err });
-    res.json(results);
+  db.query(countSql, [`%${search}%`], (err, countResults) => {
+    if (err) {
+      return res.status(500).json({
+        error: "Count query failed",
+        details: err
+      });
+    }
+
+    const total = countResults[0].total;
+
+    // 2️⃣ Main paginated query
+    const sql = `
+      SELECT *
+      FROM event
+      WHERE title LIKE ?
+      ORDER BY ${sortColumn} ${sortOrder}, id ASC
+      LIMIT ? OFFSET ?
+    `;
+
+    db.query(sql, [`%${search}%`, limit, offset], (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          error: "Database query failed",
+          details: err
+        });
+      }
+
+      // Return paginated results + total count
+      res.json({
+        events: results,
+        total
+      });
+    });
   });
 });
+
 
 app.get("/events/:id", requireAuth, (req, res) => {
   const { id } = req.params;
@@ -264,31 +315,67 @@ app.put("/events/:id", requireAuth, (req, res) => {
 });
 
 
-// ------------------------
-// ITEMS ROUTES
 app.get("/items", requireAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const offset = parseInt(req.query.offset) || 0;
   const search = req.query.search || "";
+  const userId = req.query.user_id; // optional filter
   let sortBy = req.query.sortBy || "id";
   const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
 
-  // Validate sortBy to prevent SQL injection
   const allowedSort = ["id", "name", "status"];
   if (!allowedSort.includes(sortBy)) sortBy = "id";
 
-  const sql = `
-    SELECT * FROM item
-    WHERE name LIKE ?
-    ORDER BY ${sortBy} ${sortOrder}, id ASC
-    LIMIT ? OFFSET ?
-  `;
+  // Count query
+  let countSql = `SELECT COUNT(*) AS total FROM item WHERE name LIKE ?`;
+  const countParams = [`%${search}%`];
 
-  db.query(sql, [`%${search}%`, limit, offset], (err, results) => {
-    if (err) return res.status(500).json({ error: "Database query failed", details: err });
-    res.json(results);
+  if (userId) {
+    countSql += ` AND user_id = ?`;
+    countParams.push(userId);
+  }
+
+  // Data query
+  let dataSql = `
+    SELECT *
+    FROM item
+    WHERE name LIKE ?
+  `;
+  const dataParams = [`%${search}%`];
+
+  if (userId) {
+    dataSql += ` AND user_id = ?`;
+    dataParams.push(userId);
+  }
+
+  dataSql += ` ORDER BY ${sortBy} ${sortOrder}, id ASC LIMIT ? OFFSET ?`;
+  dataParams.push(limit, offset);
+
+  db.query(countSql, countParams, (err, countResult) => {
+    if (err) return res.status(500).json({ error: "Count query failed", details: err });
+
+    const total = countResult[0].total;
+
+    db.query(dataSql, dataParams, (err, itemsResult) => {
+      if (err) return res.status(500).json({ error: "Items query failed", details: err });
+
+      const start = total === 0 ? 0 : offset + 1;
+      const end = Math.min(offset + limit, total);
+      const currentPage = Math.floor(offset / limit) + 1;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+
+      res.json({
+        items: itemsResult,
+        total,
+        start,
+        end,
+        currentPage,
+        totalPages,
+      });
+    });
   });
 });
+
 
 app.get("/items/:id", requireAuth, (req, res) => {
   const { id } = req.params;
@@ -345,44 +432,89 @@ app.put("/items/:id/status", requireAuth, (req, res) => {
 });
 
 // ------------------------
-// USERS ROUTES
+// USERS ROUTES (Updated Pagination / Sorting / Search)
 // ------------------------
 app.get("/users", requireAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const offset = parseInt(req.query.offset) || 0;
-  const search = req.query.search ? `%${req.query.search}%` : null;
+  const search = req.query.search || ""; // search username
   const sortBy = req.query.sortBy || "id"; // id, username, status
   const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
 
-  // Validate sortBy field
+  // Prevent SQL injection for sortable fields
   const validSortFields = ["id", "username", "status"];
   const orderField = validSortFields.includes(sortBy) ? sortBy : "id";
 
-  let sql = "SELECT * FROM user";
-  let params = [];
+  // Query 1: Count total users
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM user
+    WHERE username LIKE ?
+  `;
 
-  if (search) {
-    sql += " WHERE username LIKE ?";
-    params.push(search);
-  }
+  db.query(countSql, [`%${search}%`], (err, countResults) => {
+    if (err) {
+      return res.status(500).json({
+        error: "Count query failed",
+        details: err,
+      });
+    }
 
-  sql += ` ORDER BY ${orderField} ${sortOrder} LIMIT ? OFFSET ?`;
-  params.push(limit, offset);
+    const total = countResults[0].total;
 
-  db.query(sql, params, (err, results) => {
-    if (err) return res.status(500).json({ error: "Database query failed", details: err });
-    res.json(results);
+    // Query 2: Fetch paginated users
+    const sql = `
+      SELECT *
+      FROM user
+      WHERE username LIKE ?
+      ORDER BY ${orderField} ${sortOrder}, id ASC
+      LIMIT ? OFFSET ?
+    `;
+
+    db.query(sql, [`%${search}%`, limit, offset], (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          error: "Database query failed",
+          details: err,
+        });
+      }
+
+      // Pagination info
+      const start = total === 0 ? 0 : offset + 1;
+      const end = Math.min(offset + limit, total);
+      const currentPage = Math.floor(offset / limit) + 1;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+
+      res.json({
+        users: results,
+        total,
+        start,
+        end,
+        currentPage,
+        totalPages,
+      });
+    });
   });
 });
 
+
+
+// ------------------------
+// GET SINGLE USER BY ID
+// ------------------------
 app.get("/users/:id", requireAuth, (req, res) => {
   const { id } = req.params;
   db.query("SELECT * FROM user WHERE id = ? LIMIT 1", [id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Database query failed", details: err });
-    if (results.length === 0) return res.status(404).json({ error: "User not found" });
+    if (err)
+      return res.status(500).json({ error: "Database query failed", details: err });
+
+    if (results.length === 0)
+      return res.status(404).json({ error: "User not found" });
+
     res.json(results[0]);
   });
 });
+
 
 // -----------------------------------------------------
 // UPDATE USER STATUS (Ban / Unban / Deactivate / Activate)
@@ -410,7 +542,10 @@ app.put("/users/:id/status", requireAuth, (req, res) => {
   db.query(sql, [status, statusMessage, id], (err, result) => {
     if (err) {
       console.error("User status update failed:", err);
-      return res.status(500).json({ error: "Database update failed", details: err });
+      return res.status(500).json({
+        error: "Database update failed",
+        details: err
+      });
     }
 
     if (result.affectedRows === 0) {
@@ -427,9 +562,8 @@ app.put("/users/:id/status", requireAuth, (req, res) => {
   });
 });
 
-
 // ------------------------
-// API KEYS ROUTE (sns_key) WITH SEARCH & SORT
+// API KEYS ROUTE (sns_key) WITH SEARCH, SORT & PAGINATION INFO
 // ------------------------
 app.get(
   "/admin/list/custom/sns_key/:search/:sortBy/:sortOrder/:offset/:limit",
@@ -454,6 +588,10 @@ app.get(
       if (err) return res.status(500).json({ error: "Count query failed", details: err });
 
       const total = countResults[0]?.total || 0;
+      const start = total === 0 ? 0 : offset + 1;
+      const end = Math.min(offset + limit, total);
+      const currentPage = Math.floor(offset / limit) + 1;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
 
       // Fetch paginated keys with optional search
       const selectQuery = searchTerm
@@ -475,11 +613,16 @@ app.get(
         res.json({
           list: results,
           total,
+          start,
+          end,
+          currentPage,
+          totalPages,
         });
       });
     });
   }
 );
+
 
 // ------------------------
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

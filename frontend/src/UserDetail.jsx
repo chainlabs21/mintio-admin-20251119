@@ -4,12 +4,20 @@ import { useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Table from "./Table";
 import { getToken } from "./utils";
+import { useNavigate } from "react-router-dom";
 
 export default function UserDetail() {
+  const navigate = useNavigate()
   const { id } = useParams();
   const [user, setUser] = useState(null);
 
   const [userItems, setUserItems] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [loading, setLoading] = useState(true);
 
   const [offset, setOffset] = useState(0);
@@ -21,11 +29,10 @@ export default function UserDetail() {
     (async () => {
       setLoading(true);
 
+      // Fetch user info
       try {
         const res = await fetch(`http://localhost:5000/users/${id}`, {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
+          headers: { Authorization: `Bearer ${getToken()}` },
         });
 
         const data = await res.json();
@@ -34,18 +41,25 @@ export default function UserDetail() {
         console.error("Fetching user failed:", err);
       }
 
+      // Fetch user's items (paginated)
       try {
         const itemsRes = await fetch(
           `http://localhost:5000/items?user_id=${id}&limit=${limit}&offset=${offset}`,
           {
-            headers: {
-              Authorization: `Bearer ${getToken()}`,
-            },
+            headers: { Authorization: `Bearer ${getToken()}` },
           }
         );
 
         const itemsData = await itemsRes.json();
-        if (mounted) setUserItems(Array.isArray(itemsData) ? itemsData : []);
+
+        if (mounted) {
+          setUserItems(itemsData.items || []);
+          setTotal(itemsData.total || 0);
+          setStart(itemsData.start || 0);
+          setEnd(itemsData.end || 0);
+          setCurrentPage(itemsData.currentPage || 1);
+          setTotalPages(itemsData.totalPages || 1);
+        }
       } catch (err) {
         console.error("Fetching user items failed:", err);
       } finally {
@@ -63,20 +77,34 @@ export default function UserDetail() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">
-        User Detail: {user.username ?? user.id}
-      </h2>
+      {/* Title + Back Button */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold mb-2">
+          User Detail
+        </h2>
 
+        <button
+          onClick={() => navigate("/users")}
+          className="flex items-center gap-2 px-3 py-2 border border-black
+                 text-black rounded cursor-pointer hover:bg-black/20 transition"
+        >
+          <ArrowLeft size={18} />
+          Back to User List
+        </button>
+      </div>
+
+      {/* User JSON */}
       <div className="bg-gray-200 p-4 rounded mb-4 border border-gray-300">
         <pre>{JSON.stringify(user, null, 2)}</pre>
       </div>
 
-      <h3 className="text-lg mb-2">Uploaded Items</h3>
+      <h3 className="text-2xl mb-4 font-bold">Uploaded Items</h3>
 
       {userItems.length === 0 ? (
         <div>No items uploaded by this user.</div>
       ) : (
         <>
+          {/* ITEMS TABLE */}
           <Table
             columns={[
               "ID",
@@ -114,22 +142,37 @@ export default function UserDetail() {
             ])}
           />
 
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={() => setOffset((prev) => Math.max(0, prev - limit))}
-              disabled={offset === 0}
-              className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200 disabled:cursor-not-allowed"
-            >
-              <ArrowLeft size={16} /> Prev
-            </button>
+          {/* PAGINATION BAR */}
+          <div className="flex justify-between items-center mt-4">
 
-            <button
-              onClick={() => setOffset((prev) => prev + limit)}
-              disabled={userItems.length < limit}
-              className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200 disabled:cursor-not-allowed"
-            >
-              Next <ArrowRight size={16} />
-            </button>
+            {/* LEFT: Showing X–Y of Z */}
+            <div className="font-medium text-gray-600">
+              Showing <b>{start}</b> - <b>{end}</b> of <b>{total}</b>
+            </div>
+
+            {/* CENTER: Prev / Next */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setOffset((prev) => Math.max(0, prev - limit))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200 disabled:cursor-not-allowed"
+              >
+                <ArrowLeft size={16} /> Prev
+              </button>
+
+              <button
+                onClick={() => setOffset((prev) => prev + limit)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition flex items-center gap-1 disabled:bg-cyan-200 disabled:cursor-not-allowed"
+              >
+                Next <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {/* RIGHT: Page X of Y */}
+            <div className="font-medium text-gray-600">
+              Page <b>{currentPage}</b> of <b>{totalPages}</b>
+            </div>
           </div>
         </>
       )}
