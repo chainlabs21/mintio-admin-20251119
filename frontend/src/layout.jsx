@@ -10,6 +10,9 @@ import {
   LogOutIcon
 } from "lucide-react";
 
+import gitInfo from "./gitInfo.json";
+
+
 import { getToken, clearToken } from "./utils";
 import { BASE_URL } from "./config";
 
@@ -18,7 +21,8 @@ export default function Layout({ children }) {
     <div className="min-h-screen flex bg-white/40 text-gray-900">
       <aside className="w-64 bg-white p-6 flex flex-col border-r border-gray-200 shadow-lg shadow-cyan-600/30">
 
-        <h2 className="text-2xl font-bold text-cyan-400 mb-10 text-center whitespace-nowrap">
+        <h2 className="text-xl font-bold text-teal-500 mb-10 text-center flex items-center justify-center gap-2 whitespace-nowrap px-5">
+          <img src="logo (2).png" className="w-12 h-12 object-contain" alt="logo" />
           Mintio Admin
         </h2>
 
@@ -56,6 +60,8 @@ function NavItem({ to, label, icon }) {
   );
 }
 
+
+
 function LogoutItem() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -86,15 +92,22 @@ function LogoutItem() {
   }
 
   return (
-    <button
-      onClick={doLogout}
-      disabled={loading}
-      className="flex items-center gap-4 w-full p-3 rounded-xl hover:bg-red-50 transition-colors duration-300 text-red-600 font-medium"
-    >
-      <span className="p-2 border-2 border-red-500 rounded-full bg-white shadow-sm">
-        <LogOutIcon size={16} />
-      </span>
-      <span>{loading ? "Logging out…" : "Logout"}</span>
-    </button>
+    <div>
+      <button
+        onClick={doLogout}
+        disabled={loading}
+        className="flex items-center gap-4 w-full p-3 rounded-xl hover:bg-red-50 transition-colors duration-300 text-red-600 font-medium"
+      >
+        <span className="p-2 border-2 border-red-500 rounded-full bg-white shadow-sm">
+          <LogOutIcon size={16} />
+        </span>
+        <span>{loading ? "Logging out…" : "Logout"}</span>
+      </button>
+
+      {/* Git commit info below logout button */}
+      <div className="mt-2 text-xs text-gray-400">
+        Commit: {gitInfo.hash} | Last Updated: {gitInfo.date}
+      </div>
+    </div>
   );
 }
