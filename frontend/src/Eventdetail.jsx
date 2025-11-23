@@ -83,24 +83,64 @@ export default function EventDetail() {
         </div>
       </div>
 
-      {/* Details */}
-      <div className="bg-white p-5 rounded-xl shadow border border-gray-200 space-y-3">
+      {/* Event Details Table */}
+      <table className="min-w-full bg-white border border-gray-200 rounded-xl shadow">
+        <tbody className="divide-y divide-gray-200">
+          <tr>
+            <td className="px-4 py-2 font-bold">Event Title:</td>
+            <td className="px-4 py-2">{e.name}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Kind:</td>
+            <td className="px-4 py-2">{e.kind}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Status:</td>
+            <td className="px-4 py-2">{e.status}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Event Date:</td>
+            <td className="px-4 py-2">{e.event_date}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Join Start:</td>
+            <td className="px-4 py-2">{e.join_start}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Join End:</td>
+            <td className="px-4 py-2">{e.join_end}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Pre Exposure Start:</td>
+            <td className="px-4 py-2">{e.exposure_pre_start}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Pre Exposure End:</td>
+            <td className="px-4 py-2">{e.exposure_pre_end}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Main Exposure Start:</td>
+            <td className="px-4 py-2">{e.exposure_main_start}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Main Exposure End:</td>
+            <td className="px-4 py-2">{e.exposure_main_end}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Created:</td>
+            <td className="px-4 py-2">{e.created}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Updated:</td>
+            <td className="px-4 py-2">{e.updated}</td>
+          </tr>
+          <tr>
+            <td className="px-4 py-2 font-bold">Description:</td>
+            <td className="px-4 py-2">{e.description}</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div><b>Event Title:</b> {e.name}</div>   {/* <-- Added here */}
-
-        <div><b>Kind:</b> {e.kind}</div>
-        <div><b>Status:</b> {e.status}</div>
-        <div><b>Event Date:</b> {e.event_date}</div>
-        <div><b>Join Start:</b> {e.join_start}</div>
-        <div><b>Join End:</b> {e.join_end}</div>
-        <div><b>Pre Exposure Start:</b> {e.exposure_pre_start}</div>
-        <div><b>Pre Exposure End:</b> {e.exposure_pre_end}</div>
-        <div><b>Main Exposure Start:</b> {e.exposure_main_start}</div>
-        <div><b>Main Exposure End:</b> {e.exposure_main_end}</div>
-        <div><b>Created:</b> {e.created}</div>
-        <div><b>Updated:</b> {e.updated}</div>
-        <div><b>Description:</b> {e.description}</div>
-      </div>
     </div>
   );
 }
