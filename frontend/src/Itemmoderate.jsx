@@ -102,7 +102,7 @@ export default function ItemModerate() {
           onClick={() => navigate("/items")}
           className="flex items-center gap-2 px-3 py-2 border border-black text-black rounded transition cursor-pointer hover:bg-black/20"
         >
-          <ArrowLeft size={18} /> Back to Items
+          <ArrowLeft size={18} /> Back to Items List
         </button>
       </div>
 

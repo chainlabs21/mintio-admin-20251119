@@ -104,6 +104,7 @@ export default function ItemsList() {
             columns={[
               "ID",
               "User ID",
+              "Thumbnail",
               "Name",
               "URL Storage",
               "Description",
@@ -112,28 +113,11 @@ export default function ItemsList() {
               "Status Message",
               "Created At",
               "Updated At",
-              "Thumbnail",
               "Open",
             ]}
             rows={items.map((i) => [
               i.id ?? "-",
               i.user_id ?? "-",
-              i.name ?? "-",
-              i.url_storage ?? "-",
-              i.description ?? "-",
-              i.status ?? "-",
-              i.event_id ?? "-",
-              i.status_message ?? "-",
-
-              // DATE FIELDS (NON-WRAPPING)
-              <div className="whitespace-nowrap">
-                <div className="whitespace-nowrap">{formatDate(i.createdat)}</div>
-              </div>,
-
-              <div className="whitespace-nowrap">
-                <div className="whitespace-nowrap">{formatDate(i.updatedat)}</div>
-              </div>,
-
               // THUMBNAIL PREVIEW
               i.url_thumbnail ? (
                 <a
@@ -151,6 +135,23 @@ export default function ItemsList() {
               ) : (
                 "-"
               ),
+              i.name ?? "-",
+              i.url_storage ?? "-",
+              i.description ?? "-",
+              i.status ?? "-",
+              i.event_id ?? "-",
+              i.status_message ?? "-",
+
+              // DATE FIELDS (NON-WRAPPING)
+              <div className="whitespace-nowrap">
+                <div className="whitespace-nowrap">{formatDate(i.createdat)}</div>
+              </div>,
+
+              <div className="whitespace-nowrap">
+                <div className="whitespace-nowrap">{formatDate(i.updatedat)}</div>
+              </div>,
+
+
 
               // OPEN LINK
               <Link

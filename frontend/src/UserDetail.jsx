@@ -1,5 +1,6 @@
 // UserDetail.jsx
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Table from "./Table";
@@ -146,6 +147,7 @@ export default function UserDetail() {
           <Table
             columns={[
               "ID",
+              "Thumbnail",
               "Name",
               "URL",
               "Description",
@@ -154,10 +156,20 @@ export default function UserDetail() {
               "Status Message",
               "Created At",
               "Updated At",
-              "Thumbnail",
+              "Detail",
             ]}
+
             rows={userItems.map((i) => [
               i.id ?? "-",
+              i.url_thumbnail ? (
+                <img
+                  src={i.url_thumbnail}
+                  alt={i.name}
+                  className="h-12 w-12 object-cover"
+                />
+              ) : (
+                "-"
+              ),
               i.name ?? "-",
               <a href={i.url_storage} target="_blank" rel="noopener noreferrer">
                 Link
@@ -168,15 +180,14 @@ export default function UserDetail() {
               i.status_message ?? "-",
               formatDate(i.createdat),
               formatDate(i.updatedat),
-              i.url_thumbnail ? (
-                <img
-                  src={i.url_thumbnail}
-                  alt={i.name}
-                  className="h-12 w-12 object-cover"
-                />
-              ) : (
-                "-"
-              ),
+              // NEW DETAIL LINK
+              <Link
+                className="text-cyan-400 font-semibold underline flex"
+                to={`/items/${i.id}`}
+              >
+                Open
+              </Link>,
+
             ])}
           />
 
