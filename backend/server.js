@@ -78,49 +78,87 @@ function requireAuth(req, res, next) {
   }
 }
 
+
+// app.post("/api/admin/login", (req, res) => {
+//   const { username, password } = req.body;
+
+//   if (!username || !password) {
+//     return res.status(400).json({ message: "Username and password are required" });
+//   }
+
+//   db.query(
+//     "SELECT * FROM `user` WHERE username = ? LIMIT 1",
+//     [username],
+//     (err, results) => {
+//       if (err) {
+//         return res.status(500).json({ message: "DB query failed", details: err });
+//       }
+
+//       if (results.length === 0) {
+//         return res.status(404).json({ message: "User not found" });
+//       }
+
+//       const user = results[0];
+
+//       // DYNAMIC USERNAME CHECK
+//       if (username !== user.username) {
+//         return res.status(401).json({ message: "Invalid username" });
+//       }
+
+//       // DYNAMIC PASSWORD CHECK
+//       if (password !== user.pw) {
+//         return res.status(401).json({ message: "Invalid password" });
+//       }
+
+//       // SUPERADMIN CHECK
+//       const isSuperAdmin = Number(user.level) === 90;
+//       if (!isSuperAdmin) {
+//         return res.status(403).json({ message: "Forbidden: superadmin only" });
+//       }
+
+//       // ------------------------
+//       // Generate JWT token
+//       // ------------------------
+//       const token = jwt.sign(
+//         { id: user.id, username: user.username, level: user.level },
+//         JWT_SECRET,
+//         { expiresIn: JWT_EXPIRES }
+//       );
+
+//       return res.json({
+//         token,
+//         user: {
+//           id: user.id,
+//           username: user.username,
+//           email: user.email,
+//           level: user.level,
+//         },
+//       });
+//     }
+//   );
+// });
+
+
 // ------------------------
-// ADMIN LOGIN ROUTE 
+// ADMIN LOGIN ROUTE (OPEN LOGIN - NO PASSWORD CHECK)
 // ------------------------
 app.post("/api/admin/login", (req, res) => {
-  const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ message: "Username and password are required" });
-  }
-
+  // Fetch the first superadmin account automatically
   db.query(
-    "SELECT * FROM `user` WHERE username = ? LIMIT 1",
-    [username],
+    "SELECT * FROM `user` WHERE level = 90 LIMIT 1",
     (err, results) => {
       if (err) {
         return res.status(500).json({ message: "DB query failed", details: err });
       }
 
       if (results.length === 0) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "Superadmin not found in database" });
       }
 
       const user = results[0];
 
-      // DYNAMIC USERNAME CHECK
-      if (username !== user.username) {
-        return res.status(401).json({ message: "Invalid username" });
-      }
-
-      // DYNAMIC PASSWORD CHECK
-      if (password !== user.pw) {
-        return res.status(401).json({ message: "Invalid password" });
-      }
-
-      // SUPERADMIN CHECK
-      const isSuperAdmin = Number(user.level) === 90;
-      if (!isSuperAdmin) {
-        return res.status(403).json({ message: "Forbidden: superadmin only" });
-      }
-
-      // ------------------------
-      // Generate JWT token
-      // ------------------------
+      // DIRECT LOGIN — NO PASSWORD CHECK
       const token = jwt.sign(
         { id: user.id, username: user.username, level: user.level },
         JWT_SECRET,
