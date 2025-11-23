@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { getToken, clearToken } from "./utils";
 import Layout from "./layout";
+import { BASE_URL } from "./config";
 
 export default function ProtectedLayout() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function ProtectedLayout() {
     }
 
     // Optional: verify token with backend
-    fetch("http://localhost:5000/api/verify-token", {
+    fetch(`${BASE_URL}/api/verify-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Calendar, Box, User, Clock, Edit2 } from "lucide-react";
+import { BASE_URL } from "./config";
 
 export function Dashboard() {
   const [eventsCount, setEventsCount] = useState(null);
@@ -34,38 +35,39 @@ export function Dashboard() {
   ];
 
   useEffect(() => {
-  async function fetchStats() {
-    try {
-      const token = localStorage.getItem("token"); // assuming you store JWT in localStorage
-      if (!token) return;
+    async function fetchStats() {
+      try {
+        const token = localStorage.getItem("token"); // assuming you store JWT in localStorage
+        if (!token) return;
 
-      const headers = {
-        "Authorization": `Bearer ${token}`,
-      };
+        const headers = {
+          "Authorization": `Bearer ${token}`,
+        };
 
-      const [eventsRes, itemsRes, usersRes] = await Promise.all([
-        fetch("http://localhost:5000/events?limit=1", { headers }),
-        fetch("http://localhost:5000/items?limit=1", { headers }),
-        fetch("http://localhost:5000/users?limit=1", { headers }),
-      ]);
+        const [eventsRes, itemsRes, usersRes] = await Promise.all([
+          fetch(`${BASE_URL}/events?limit=1`, { headers }),
+          fetch(`${BASE_URL}/items?limit=1`, { headers }),
+          fetch(`${BASE_URL}/users?limit=1`, { headers }),
+        ]);
 
-      const eventsData = await eventsRes.json();
-      const itemsData = await itemsRes.json();
-      const usersData = await usersRes.json();
 
-      setEventsCount(eventsData.total ?? 0);
-      setItemsCount(itemsData.total ?? 0);
-      setUsersCount(usersData.total ?? 0);
-    } catch (err) {
-      console.error("Failed to fetch stats:", err);
-      setEventsCount("N/A");
-      setItemsCount("N/A");
-      setUsersCount("N/A");
+        const eventsData = await eventsRes.json();
+        const itemsData = await itemsRes.json();
+        const usersData = await usersRes.json();
+
+        setEventsCount(eventsData.total ?? 0);
+        setItemsCount(itemsData.total ?? 0);
+        setUsersCount(usersData.total ?? 0);
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+        setEventsCount("N/A");
+        setItemsCount("N/A");
+        setUsersCount("N/A");
+      }
     }
-  }
 
-  fetchStats();
-}, []);
+    fetchStats();
+  }, []);
 
 
   return (

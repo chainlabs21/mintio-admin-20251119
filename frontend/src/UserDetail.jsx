@@ -6,6 +6,7 @@ import Table from "./Table";
 import { getToken } from "./utils";
 import { useNavigate } from "react-router-dom";
 import { formatDate } from "./formatdate";
+import { BASE_URL } from "./config";
 
 export default function UserDetail() {
   const navigate = useNavigate()
@@ -32,7 +33,7 @@ export default function UserDetail() {
 
       // Fetch user info
       try {
-        const res = await fetch(`http://localhost:5000/users/${id}`, {
+        const res = await fetch(`${BASE_URL}/users/${id}`, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
 
@@ -45,7 +46,7 @@ export default function UserDetail() {
       // Fetch user's items (paginated)
       try {
         const itemsRes = await fetch(
-          `http://localhost:5000/items?user_id=${id}&limit=${limit}&offset=${offset}`,
+          `${BASE_URL}/items?user_id=${id}&limit=${limit}&offset=${offset}`,
           {
             headers: { Authorization: `Bearer ${getToken()}` },
           }

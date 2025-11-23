@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Search, ArrowUp, ArrowDown } from "lucide-react";
 import Table from "./Table";
 import { getToken } from "./utils";
-import { limit } from "./config";
+import { BASE_URL, limit } from "./config";
 import { formatDate } from "./formatdate";
 
 
@@ -22,7 +22,7 @@ export default function ItemsList() {
     try {
       const token = getToken();
       const res = await fetch(
-        `http://localhost:5000/items?limit=${limit}&offset=${offset}&search=${encodeURIComponent(
+        `${BASE_URL}/items?limit=${limit}&offset=${offset}&search=${encodeURIComponent(
           searchTerm
         )}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
         {

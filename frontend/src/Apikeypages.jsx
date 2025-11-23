@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import Table from "./Table";
 import { getToken } from "./utils";
 import { Search, ArrowUp, ArrowDown,ArrowLeft , ArrowRight } from "lucide-react";
-import { limit } from "./config.js";
+import { BASE_URL, limit } from "./config.js";
 import { formatDate } from "./formatdate.js";
 
 export default function ApiKeysPage() {
@@ -44,7 +44,7 @@ export default function ApiKeysPage() {
 
       try {
         const res = await fetch(
-          `http://localhost:5000/admin/list/custom/sns_key/${searchParam}/${sortBy}/${sortOrder}/${offset}/${limit}`,
+          `${BASE_URL}/admin/list/custom/sns_key/${searchParam}/${sortBy}/${sortOrder}/${offset}/${limit}`,
           {
             headers: { Authorization: `Bearer ${getToken()}` },
           }

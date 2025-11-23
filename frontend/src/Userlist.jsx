@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import Table from "./Table";
 import { getToken } from "./utils";
 import { Search, ArrowUp, ArrowDown, ArrowRight, ArrowLeft } from "lucide-react";
-import { limit } from "./config";
+import { BASE_URL, limit } from "./config";
 import { formatDate } from "./formatdate";
 
 // Simple premium toast component
@@ -53,7 +53,7 @@ export default function UsersList() {
     try {
       const token = getToken();
       const res = await fetch(
-        `http://localhost:5000/users?limit=${limit}&offset=${offset}&search=${encodeURIComponent(
+        `${BASE_URL}/users?limit=${limit}&offset=${offset}&search=${encodeURIComponent(
           search
         )}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -84,7 +84,7 @@ export default function UsersList() {
   // --------------------------------------------------
   const updateStatus = async (id, newStatus) => {
     try {
-      const res = await fetch(`http://localhost:5000/users/${id}/status`, {
+      const res = await fetch(`${BASE_URL}/users/${id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -4,6 +4,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { getToken } from "./utils";
 import { formatDate } from "./formatdate";
+import { BASE_URL } from "./config";
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -19,7 +20,7 @@ export default function EventDetail() {
       try {
         const token = getToken();
 
-        const res = await fetch(`http://localhost:5000/events/${id}`, {
+        const res = await fetch(`${BASE_URL}/events/${id}`, {
           headers: {
             "Authorization": `Bearer ${token}`,
           },
@@ -72,7 +73,7 @@ export default function EventDetail() {
             onClick={() => navigate("/events")}
             className="flex items-center gap-2 text-black font-medium border border-gray-800 px-4 py-2 rounded"
           >
-            <ArrowLeft size={18} /> Back to Events
+            <ArrowLeft size={18} /> Back to Events List
           </button>
 
           <Link

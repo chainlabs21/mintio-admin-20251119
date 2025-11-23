@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getToken } from "./utils";
 import { formatDate } from "./formatdate";
+import { BASE_URL } from "./config";
 
 // Premium Toast identical to UsersList
 function Toast({ message, onClose }) {
@@ -36,7 +37,7 @@ export default function ItemModerate() {
 
   const loadItem = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/items/${id}`, {
+      const res = await fetch(`${BASE_URL}/items/${id}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
@@ -67,7 +68,7 @@ export default function ItemModerate() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/items/${id}/status`, {
+      const res = await fetch(`${BASE_URL}/items/${id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

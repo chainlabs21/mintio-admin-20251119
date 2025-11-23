@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRightIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { saveToken } from "./utils";
+import { BASE_URL } from "./config";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/login", {
+      const res = await fetch(`${BASE_URL}/api/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: adminId, password }),

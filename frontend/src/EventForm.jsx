@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getToken } from "./utils";
+import { BASE_URL } from "./config";
 
 // Premium Toast Component (same as UsersList)
 function Toast({ message, onClose }) {
@@ -59,7 +60,7 @@ export function EventForm({ mode }) {
 
     const load = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/events/${id}`, {
+        const res = await fetch(`${BASE_URL}/events/${id}`, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
         const data = await res.json();
@@ -100,8 +101,8 @@ export function EventForm({ mode }) {
 
     try {
       const url = editing
-        ? `http://localhost:5000/events/${id}`
-        : `http://localhost:5000/events`;
+        ? `${BASE_URL}/events/${id}`
+        : `${BASE_URL}/events`;
 
       const res = await fetch(url, {
         method: editing ? "PUT" : "POST",
