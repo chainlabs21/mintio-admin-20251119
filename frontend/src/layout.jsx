@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { getToken, clearToken } from "./utils";
+import { BASE_URL } from "./config";
 
 export default function Layout({ children }) {
   return (
@@ -68,7 +69,7 @@ function LogoutItem() {
 
     setLoading(true);
     try {
-      await fetch("http://localhost:5000/api/logout", {
+      await fetch(`${BASE_URL}/api/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
