@@ -9,10 +9,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const https = require ( 'https')
+const PORT_HTTPS = 50627
+const server_https = https
+  .createServer(
+    {
+     key: fs.readFileSync('/etc/letsencrypt/live/mintio.shop/privkey.pem').toString()
+,    cert:fs.readFileSync('/etc/letsencrypt/live/mintio.shop/fullchain.pem').toString()
+    },
+    app
+  )
+  .listen( PORT_HTTPS );
+  LOGGER(`https listening ${ PORT_HTTPS }`)
+
+server_https.listen( PORT_HTTPS ) 
 // ------------------------
 // Configuration
 // ------------------------
-const PORT = process.env.PORT || 5000;
+// const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = "8h";
 
@@ -663,4 +677,4 @@ app.get(
 
 
 // ------------------------
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
