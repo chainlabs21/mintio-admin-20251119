@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { getToken } from "./utils";
+import { formatDate } from "./formatdate";
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -100,39 +101,39 @@ export default function EventDetail() {
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Event Date:</td>
-            <td className="px-4 py-2">{e.event_date}</td>
+            <td className="px-4 py-2">{formatDate(e.event_date)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Join Start:</td>
-            <td className="px-4 py-2">{e.join_start}</td>
+            <td className="px-4 py-2">{formatDate(e.join_start)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Join End:</td>
-            <td className="px-4 py-2">{e.join_end}</td>
+            <td className="px-4 py-2">{formatDate(e.join_end)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Pre Exposure Start:</td>
-            <td className="px-4 py-2">{e.exposure_pre_start}</td>
+            <td className="px-4 py-2">{formatDate(e.exposure_pre_start)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Pre Exposure End:</td>
-            <td className="px-4 py-2">{e.exposure_pre_end}</td>
+            <td className="px-4 py-2">{formatDate(e.exposure_pre_end)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Main Exposure Start:</td>
-            <td className="px-4 py-2">{e.exposure_main_start}</td>
+            <td className="px-4 py-2">{formatDate(e.exposure_main_start)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Main Exposure End:</td>
-            <td className="px-4 py-2">{e.exposure_main_end}</td>
+            <td className="px-4 py-2">{formatDate(e.exposure_main_end)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Created:</td>
-            <td className="px-4 py-2">{e.created}</td>
+            <td className="px-4 py-2">{formatDate(e.created)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Updated:</td>
-            <td className="px-4 py-2">{e.updated}</td>
+            <td className="px-4 py-2">{formatDate(e.updated)}</td>
           </tr>
           <tr>
             <td className="px-4 py-2 font-bold">Description:</td>

@@ -224,16 +224,30 @@ export default function UsersList() {
             </div>
 
             <div className="flex gap-2">
+              {/* Previous */}
               <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                onClick={() => {
+                  if (currentPage > 1) {
+                    const newPage = currentPage - 1;
+                    setCurrentPage(newPage);
+                    setOffset((newPage - 1) * limit);
+                  }
+                }}
                 disabled={currentPage === 1}
                 className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition disabled:bg-cyan-200 disabled:cursor-not-allowed flex items-center gap-1"
               >
                 <ArrowLeft size={16} /> Previous
               </button>
 
+              {/* Next */}
               <button
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                onClick={() => {
+                  if (currentPage < totalPages) {
+                    const newPage = currentPage + 1;
+                    setCurrentPage(newPage);
+                    setOffset((newPage - 1) * limit);
+                  }
+                }}
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 bg-cyan-400 rounded hover:bg-cyan-500 transition disabled:bg-cyan-200 disabled:cursor-not-allowed flex items-center gap-1"
               >
@@ -245,6 +259,7 @@ export default function UsersList() {
               Page <b>{currentPage}</b> of <b>{totalPages}</b>
             </div>
           </div>
+
         </>
       )}
     </div>
